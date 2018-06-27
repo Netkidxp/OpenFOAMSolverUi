@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file alias="clean">img/clean.png</file>
+        <file alias="open">img/open.png</file>
+        <file alias="restart">img/restart.png</file>
+        <file alias="start">img/run.png</file>
+        <file alias="stop">img/stop.png</file>
+        <file alias="about">img/about.png</file>
+        <file alias="help">img/help.png</file>
+        <file alias="quit">img/quit.png</file>
+    </qresource>
+</RCC>
