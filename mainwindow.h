@@ -40,14 +40,16 @@ class MainWindow;
 
 typedef enum
 {
-    BeforeDecompose,
+    BeforeDecompose = 0,
     StartedDecompose,
     FinishedDecompose,
+    BeforeFoam,
     StartedFoam,
     FinishedFoam,
+    BeforeReconstruct,
     StartedReconstruct,
     FinishedReconstruct
-}RunnerState;
+}FoamState;
 
 
 class MainWindow : public QMainWindow
@@ -67,7 +69,9 @@ private:
     QValueAxis *axisX;
     QValueAxis *axisY;
     bool Abort;
-    RunnerState state;
+    FoamState runnerState;
+    FoamState decomposeState;
+    FoamState reconstructState;
     FoamLogDecoder decoder;
     QString foamLogText;
     double minX,maxX,minY,maxY;
@@ -76,7 +80,7 @@ private:
     void Restart();
     void Initlize();
     void StartRun();
-    void StopRun();
+    void StopAllRun();
     void CleanCase();
     void LogError(const QString &err);
     void LogInformation(const QString &inf);
@@ -84,11 +88,14 @@ private:
     void LogError(QStringList &errs);
     void LogInformation(QStringList &infs);
     void LogFoam(QStringList &infs);
-
+    void DisableAllFoamActionButStop();
+    void EnbaleAllFoamActionButStop();
     QLineSeries *GetSeries(const QString &name);
-    RunnerState getRunState() const;
-    void setRunState(const RunnerState &value);
+    FoamState getRunnerState() const;
+    void setRunnerState(const FoamState &value);
     void resetWorkplace();
+    void readFoamState();
+    void writeFoamState();
 
 public:
     explicit MainWindow(QWidget *parent = 0);
@@ -100,6 +107,13 @@ public:
 
 
 
+    FoamState getDecomposeState() const;
+    void setDecomposeState(const FoamState &value);
+
+    FoamState getReconstructState() const;
+    void setReconstructState(const FoamState &value);
+
+    void updateActionsState();
 private slots:
     void on_action_Quit_triggered();
     void on_action_Open_triggered();
@@ -129,6 +143,12 @@ private slots:
     void on_action_Clean_triggered();
 
     void on_actiontest_triggered();
+
+    void on_action_Decompose_triggered();
+
+    void on_action_Reconstruct_triggered();
+
+    void on_action_Initlize_triggered();
 
 protected:
     void closeEvent(QCloseEvent *event);

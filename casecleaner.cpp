@@ -44,6 +44,25 @@ bool CaseCleaner::deleteElement(const QString &dirName, const QString &exp)
 void CaseCleaner::cleanTimeDirectories(const QString &dirName)
 {
     deleteElement(dirName,"^[1-9]\\d*.\\d*|0.\\d*[1-9]\\d*$|^[1-9]\\d*$");
+    QDir directory(dirName);
+    if (!directory.exists())
+    {
+        return;
+    }
+    QString srcPath = QDir::toNativeSeparators(dirName);
+    if (!srcPath.endsWith(QDir::separator()))
+        srcPath += QDir::separator();
+    QStringList fileNames = directory.entryList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden);
+    for (QStringList::size_type i=0; i != fileNames.size(); ++i)
+    {
+        QString fileName = fileNames.at(i);
+        QString filePath = srcPath + fileName;
+        QFileInfo fileInfo(filePath);
+        if (fileInfo.isFile() || fileInfo.isSymLink())
+            continue;
+        else if (fileInfo.isDir())
+        deleteElement(filePath,"^[1-9]\\d*.\\d*|0.\\d*[1-9]\\d*$|^[1-9]\\d*$");
+    }
 }
 
 void CaseCleaner::cleanDynamicCode(const QString &dirName)

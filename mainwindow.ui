@@ -42,12 +42,12 @@
    </widget>
    <widget class="QMenu" name="menu_Operation">
     <property name="title">
-     <string>&amp;Operation</string>
+     <string>&amp;Run</string>
     </property>
-    <addaction name="action_Clean"/>
+    <addaction name="action_Initlize"/>
     <addaction name="action_Run"/>
-    <addaction name="action_ReStart"/>
     <addaction name="action_Stop"/>
+    <addaction name="action_Clean"/>
    </widget>
    <widget class="QMenu" name="menu_Help">
     <property name="title">
@@ -57,7 +57,15 @@
     <addaction name="action_About"/>
     <addaction name="actiontest"/>
    </widget>
+   <widget class="QMenu" name="menu_parallel">
+    <property name="title">
+     <string> &amp;Parallel</string>
+    </property>
+    <addaction name="action_Decompose"/>
+    <addaction name="action_Reconstruct"/>
+   </widget>
    <addaction name="menu_File"/>
+   <addaction name="menu_parallel"/>
    <addaction name="menu_Operation"/>
    <addaction name="menu_Help"/>
   </widget>
@@ -76,10 +84,15 @@
    </attribute>
    <addaction name="separator"/>
    <addaction name="action_Open"/>
+   <addaction name="separator"/>
+   <addaction name="action_Decompose"/>
+   <addaction name="action_Reconstruct"/>
+   <addaction name="separator"/>
+   <addaction name="action_Initlize"/>
    <addaction name="action_Run"/>
-   <addaction name="action_ReStart"/>
-   <addaction name="action_Clean"/>
    <addaction name="action_Stop"/>
+   <addaction name="separator"/>
+   <addaction name="action_Clean"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="action_Open">
@@ -125,6 +138,21 @@
   <action name="actiontest">
    <property name="text">
     <string>test</string>
+   </property>
+  </action>
+  <action name="action_Decompose">
+   <property name="text">
+    <string>&amp;Decompose</string>
+   </property>
+  </action>
+  <action name="action_Reconstruct">
+   <property name="text">
+    <string>&amp;Reconstruct</string>
+   </property>
+  </action>
+  <action name="action_Initlize">
+   <property name="text">
+    <string>&amp;Initlize</string>
    </property>
   </action>
  </widget>

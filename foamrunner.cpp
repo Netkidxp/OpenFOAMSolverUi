@@ -63,7 +63,7 @@ void FoamRunner::StartParallelly(int np)
 #if defined(Q_OS_WIN32)||defined(Q_OS_WIN64)
     application = "mpiexec";
     options << "-n";
-#elif
+#else
     application = "mpirun";
     options << "-np";
 #endif
@@ -96,7 +96,7 @@ void FoamRunner::StartParallelly(int np, const QString &hostfile)
 #if defined(Q_OS_WIN32)||defined(Q_OS_WIN64)
     application = "mpiexec";
     options << "-n";
-#elif
+#else
     application = "mpirun";
     options << "-np";
 #endif

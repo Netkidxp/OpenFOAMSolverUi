@@ -23,25 +23,27 @@ MainWindow::~MainWindow()
 
 }
 
-RunnerState MainWindow::getRunState() const
+FoamState MainWindow::getRunnerState() const
 {
-    return state;
+    return runnerState;
 }
 
-void MainWindow::setRunState(const RunnerState &value)
+void MainWindow::setRunnerState(const FoamState &value)
 {
-    state = value;
-    if(ui)
+    runnerState = value;
+    /*if(ui)
     {
-        if(state == BeforeDecompose)
+        if(runnerState == BeforeDecompose)
         {
             ui->action_Open->setEnabled(true);
             ui->action_Run->setEnabled(true);
-            ui->action_ReStart->setEnabled(false);
+            //ui->action_ReStart->setEnabled(false);
             ui->action_Stop->setEnabled(false);
             ui->action_Clean->setEnabled(true);
+            ui->action_Decompose->setEnabled(true);
+            ui->action_Reconstruct->setEnabled(false);
         }
-        else if(state == StartedDecompose || state == StartedFoam || state == StartedReconstruct)
+        else if(runnerState == StartedDecompose || runnerState == StartedFoam || runnerState == StartedReconstruct)
         {
             ui->action_Open->setEnabled(false);
             ui->action_Run->setEnabled(false);
@@ -49,7 +51,7 @@ void MainWindow::setRunState(const RunnerState &value)
             ui->action_Stop->setEnabled(true);
             ui->action_Clean->setEnabled(false);
         }
-        else if(state == FinishedDecompose || state == FinishedFoam || state == FinishedReconstruct)
+        else if(runnerState == FinishedDecompose || runnerState == FinishedFoam || runnerState == FinishedReconstruct)
         {
             ui->action_Open->setEnabled(true);
             ui->action_Run->setEnabled(true);
@@ -57,22 +59,116 @@ void MainWindow::setRunState(const RunnerState &value)
             ui->action_Stop->setEnabled(false);
             ui->action_Clean->setEnabled(true);
         }
-    }
+    }*/
+    updateActionsState();
+    writeFoamState();
 }
 
 void MainWindow::resetWorkplace()
 {
     Abort = false;
-    setRunState(BeforeDecompose);
     chart->removeAllSeries();
     console->clear();
     foamLogText.clear();
 }
 
+void MainWindow::readFoamState()
+{
+    QFile f(getUrl()+QDir::separator()+".foamstate");
+    if(!f.open(QIODevice::ReadOnly))
+    {
+        decomposeState = BeforeDecompose;
+        runnerState = BeforeFoam;
+        reconstructState = BeforeReconstruct;
+        updateActionsState();
+        return;
+    }
+    else
+    {
+        QTextStream s(&f);
+        QString data = s.readLine();
+        QStringList ds = data.split(' ');
+        if(ds.length()!=3)
+        {
+            decomposeState = BeforeDecompose;
+            runnerState = BeforeFoam;
+            reconstructState = BeforeReconstruct;
+            updateActionsState();
+        }
+        else
+        {
+            QString dcs = ds[0];
+            QString rns = ds[1];
+            QString rcs = ds[2];
+            int ics = dcs.toInt();
+            int irn = rns.toInt();
+            int irc = rcs.toInt();
+            decomposeState = (FoamState)ics;
+            runnerState = (FoamState)irn;
+            reconstructState = (FoamState)irc;
+            updateActionsState();
+        }
+
+        f.close();
+    }
+}
+
+void MainWindow::writeFoamState()
+{
+    QFile f(getUrl()+QDir::separator()+".foamstate");
+    if(!f.open(QIODevice::WriteOnly))
+    {
+        return;
+    }
+    QTextStream s(&f);
+    int dcs = (int)getDecomposeState();
+    int rns = (int)getRunnerState();
+    int rcs = (int)getReconstructState();
+    s << (QString("%1 %2 %3").arg(dcs).arg(rns).arg(rcs));
+    f.close();
+}
+
+FoamState MainWindow::getDecomposeState() const
+{
+    return decomposeState;
+
+}
+
+void MainWindow::setDecomposeState(const FoamState &value)
+{
+    decomposeState = value;
+    updateActionsState();
+    writeFoamState();
+}
+
+FoamState MainWindow::getReconstructState() const
+{
+    return reconstructState;
+}
+
+void MainWindow::setReconstructState(const FoamState &value)
+{
+    reconstructState = value;
+    updateActionsState();
+    writeFoamState();
+}
+
+void MainWindow::updateActionsState()
+{
+    if(getDecomposeState()==StartedDecompose||getRunnerState()==StartedFoam||getReconstructState()==StartedReconstruct)
+        DisableAllFoamActionButStop();
+    else
+        EnbaleAllFoamActionButStop();
+    if(getDecomposeState()==FinishedDecompose&&getRunnerState()==FinishedFoam)
+        ui->action_Reconstruct->setEnabled(true);
+    else
+        ui->action_Reconstruct->setEnabled(false);
+}
+
 void MainWindow::Restart()
 {
     resetWorkplace();
-    setRunState(BeforeDecompose);
+    setRunnerState(BeforeDecompose);
     dcRunner.Start();
 }
 
@@ -89,7 +185,7 @@ void MainWindow::Initlize()
     splitter->setStretchFactor(1, 1);
     this->setCentralWidget(splitter);
     Abort = false;
-    state = BeforeDecompose;
+    runnerState = BeforeDecompose;
     chart = new QChart();
     //chart->createDefaultAxes();
     //创建QAxis
@@ -130,7 +226,7 @@ void MainWindow::Initlize()
 
     connect(&timer,SIGNAL(timeout()),this,SLOT(FoamlogToChart()));
 
-    setRunState(BeforeDecompose);
+    setRunnerState(BeforeDecompose);
     ui->action_Open->setIcon(QIcon(":/icons/open"));
     ui->action_Run->setIcon(QIcon(":/icons/start"));
     ui->action_ReStart->setIcon(QIcon(":/icons/restart"));
@@ -139,6 +235,9 @@ void MainWindow::Initlize()
     ui->action_Quit->setIcon(QIcon(":/icons/quit"));
     ui->actionH_elp->setIcon(QIcon(":/icons/help"));
     ui->action_About->setIcon(QIcon(":/icons/about"));
+    ui->action_Decompose->setIcon(QIcon(":/icons/decompose"));
+    ui->action_Reconstruct->setIcon(QIcon(":/icons/reconstruct"));
+    ui->action_Initlize->setIcon(QIcon(":/icons/initialize"));
 
 }
 void MainWindow::showAndRun(QString url)
@@ -173,7 +272,6 @@ void MainWindow::on_action_Open_triggered()
         fileNameList = fd->selectedFiles();
         fileName0 = fileNameList[0];
         setUrl(fileName0);
-        resetWorkplace();
         LogInformation("target:"+fileName0);
     }
     else
@@ -183,7 +281,7 @@ void MainWindow::on_action_Open_triggered()
 
 void MainWindow::onRunnerStart()
 {
-    setRunState(StartedFoam);
+    setRunnerState(StartedFoam);
     LogInformation(QString("%1 start").arg(runner.getSolverName()));
     timer.start(1000);
 }
@@ -196,14 +294,11 @@ void MainWindow::onRunnerOutput(const QString &output)
 
 void MainWindow::onRunnerFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
-    setRunState(FinishedFoam);
+    setRunnerState(FinishedFoam);
     if(exitStatus == QProcess::NormalExit)
     {
         LogInformation("solver stoped normally");
         FoamlogToChart();
-        state = FinishedFoam;
-        if(!Abort)
-            rcRunner.Start();
     }
     else
     {
@@ -220,7 +315,7 @@ void MainWindow::onRunnerError(const QString &value)
 void MainWindow::onDecomposeStart()
 {
     LogInformation("decomposePar start");
-    setRunState(StartedDecompose);
+    setDecomposeState(StartedDecompose);
 }
 
 void MainWindow::onDecomposeOutput(const QString &output)
@@ -235,23 +330,22 @@ void MainWindow::onDecomposeError(const QString &value)
 
 void MainWindow::onDecomposeFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
-    setRunState(FinishedDecompose);
+
     if(exitStatus == QProcess::NormalExit)
     {
-
         LogInformation("decomposePar stoped normally");
-        if(!Abort)
-            runner.Start();
+        setDecomposeState(FinishedDecompose);
     }
     else
     {
         LogInformation(QString("solver aborted! exitcode is %1").arg(exitCode));
+        setDecomposeState(BeforeDecompose);
     }
 }
 
 void MainWindow::onReconstructStart()
 {
-    setRunState(StartedReconstruct);
+    setReconstructState(StartedReconstruct);
     LogInformation("reconstructPar start");
 }
 
@@ -267,15 +361,16 @@ void MainWindow::onReconstructError(const QString &value)
 
 void MainWindow::onReconstructFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
-    setRunState(FinishedReconstruct);
+
     if(exitStatus == QProcess::NormalExit)
     {
         LogInformation("reconstructPar stoped normally");
-
+        setReconstructState(FinishedReconstruct);
     }
     else
     {
         LogInformation(QString("solver aborted! exitcode is %1").arg(exitCode));
+        setReconstructState(BeforeReconstruct);
     }
 
     CaseCleaner::cleanProcesorDirs(getUrl());
@@ -292,25 +387,27 @@ void MainWindow::setUrl(const QString &value)
 {
     url = value;
     this->setWindowTitle("OpenFOAM Solver UI:"+value);
+    resetWorkplace();
     dcRunner.setTargetUrl(url);
     runner.setTargetUrl(url);
     rcRunner.setTargetUrl(url);
+    readFoamState();
 }
 
 void MainWindow::StartRun()
 {
-    if(state == StartedFoam||state == FinishedFoam)
+    if(runnerState == StartedFoam||runnerState == FinishedFoam)
     {
         resetWorkplace();
         runner.Start();
     }
-    else if(state == StartedReconstruct)
+    else if(runnerState == StartedReconstruct)
         rcRunner.Start();
     else
         Restart();
 }
 
-void MainWindow::StopRun()
+void MainWindow::StopAllRun()
 {
     Abort = true;
     dcRunner.Stop();
@@ -327,20 +424,52 @@ void MainWindow::CleanCase()
 
 void MainWindow::LogError(const QString &err)
 {
-    console->setTextColor(QColor(205,16,118));
-    console->append(err);
+    console->setTextColor(QColor(54,100,139));
+#if defined(Q_OS_WIN32)||defined(Q_OS_WIN64)
+    if(err.endsWith("\r\n"))
+        console->append(err.left(err.length()-2));
+    else
+        console->append(err);
+#else
+    if(err.endsWith("\n"))
+        console->append(err.left(err.length()-1));
+    else
+        console->append(err);
+#endif
+
+
 }
 
 void MainWindow::LogInformation(const QString &inf)
 {
     console->setTextColor(QColor(54,100,139));
-    console->append(inf);
+#if defined(Q_OS_WIN32)||defined(Q_OS_WIN64)
+    if(inf.endsWith("\r\n"))
+        console->append(inf.left(inf.length()-2));
+    else
+        console->append(inf);
+#else
+    if(inf.endsWith("\n"))
+        console->append(inf.left(inf.length()-1));
+    else
+        console->append(inf);
+#endif
 }
 
 void MainWindow::LogFoam(const QString &inf)
 {
-    console->setTextColor(QColor(54,54,54));
-    console->append(inf);
+    console->setTextColor(QColor(54,100,139));
+#if defined(Q_OS_WIN32)||defined(Q_OS_WIN64)
+    if(inf.endsWith("\r\n"))
+        console->append(inf.left(inf.length()-2));
+    else
+        console->append(inf);
+#else
+    if(inf.endsWith("\n"))
+        console->append(inf.left(inf.length()-1));
+    else
+        console->append(inf);
+#endif
 }
 
 void MainWindow::LogError(QStringList &errs)
@@ -373,45 +502,81 @@ void MainWindow::LogFoam(QStringList &infs)
     }
 }
 
+void MainWindow::DisableAllFoamActionButStop()
+{
+    if(ui)
+    {
+        ui->action_Clean->setEnabled(false);
+        ui->action_Decompose->setEnabled(false);
+        ui->action_Initlize->setEnabled(false);
+        ui->action_Open->setEnabled(false);
+        ui->action_Reconstruct->setEnabled(false);
+        ui->action_Run->setEnabled(false);
+        ui->action_Stop->setEnabled(true);
+    }
+}
+
+void MainWindow::EnbaleAllFoamActionButStop()
+{
+    if(ui)
+    {
+        ui->action_Clean->setEnabled(true);
+        ui->action_Decompose->setEnabled(true);
+        ui->action_Initlize->setEnabled(true);
+        ui->action_Open->setEnabled(true);
+        ui->action_Reconstruct->setEnabled(true);
+        ui->action_Run->setEnabled(true);
+        ui->action_Stop->setEnabled(false);
+    }
+}
+
 void MainWindow::FoamlogToChart()
 {
-    QList<FoamDataPoint> list = decoder.decode(foamLogText);
-    QList<QAbstractSeries *> allseries = chart->series();
-    foreach (QAbstractSeries *s, allseries) {
-        QLineSeries *pls = (QLineSeries *)s;
-        pls->clear();
-    }
-    for(int i=0;i<list.size();i++)
+    QFile f(runner.getLogfileUrl());
+    if(f.open(QFile::ReadOnly))
     {
-        FoamDataPoint p = list.at(i);
-        if(p.getName().endsWith("sum local")||p.getName().endsWith("Initial residual"))
-        {
-            QLineSeries *series = GetSeries(p.getName());
-            double y = 0;
-            if(p.getY()>=1e-20)
-                y = log10(p.getY());
-            double x = p.getX();
-            series->append(x,y);
-            if(i == 0)
-            {
-                minX = maxX = x;
-                minY = maxY = y;
-            }
-            else
-            {
-                minX = qMin(x,minX);
-                maxX = qMax(x,maxX);
-                minY = qMin(y,minY);
-                maxY = qMax(y,maxY);
-            }
-            qDebug() << p.getName();
-            //qDebug("p.x:%f  p.y:%f  ",p.getX(),p.getY());
-            qDebug("  x:%f    y:%f  ",x,y);
+        QTextStream ts(&f);
+        QString data = ts.readAll();
+        QList<FoamDataPoint> list = decoder.decode(data);
+        QList<QAbstractSeries *> allseries = chart->series();
+        foreach (QAbstractSeries *s, allseries) {
+            QLineSeries *pls = (QLineSeries *)s;
+            pls->clear();
         }
+        for(int i=0;i<list.size();i++)
+        {
+            FoamDataPoint p = list.at(i);
+            if(p.getName().endsWith("sum local")||p.getName().endsWith("Initial residual"))
+            {
+                QLineSeries *series = GetSeries(p.getName());
+                double y = 0;
+                if(p.getY()>=1e-20)
+                    y = log10(p.getY());
+                double x = p.getX();
+                series->append(x,y);
+                if(i == 0)
+                {
+                    minX = maxX = x;
+                    minY = maxY = y;
+                }
+                else
+                {
+                    minX = qMin(x,minX);
+                    maxX = qMax(x,maxX);
+                    minY = qMin(y,minY);
+                    maxY = qMax(y,maxY);
+                }
+                qDebug() << p.getName();
+                //qDebug("p.x:%f  p.y:%f  ",p.getX(),p.getY());
+                qDebug("  x:%f    y:%f  ",x,y);
+            }
 
+        }
+        axisX->setRange(minX,maxX);
+        axisY->setRange(minY,maxY);
+        f.close();
     }
-    axisX->setRange(minX,maxX);
-    axisY->setRange(minY,maxY);
+
 }
 
 QLineSeries *MainWindow::GetSeries(const QString &name)
@@ -441,24 +606,33 @@ QLineSeries *MainWindow::GetSeries(const QString &name)
 
 void MainWindow::on_action_Run_triggered()
 {
-    if(dcRunner.isRunning()||runner.isRunning()||rcRunner.isRunning())
-    {
-        QMessageBox::information(this,"information","Simulation is running!",QMessageBox::Ok);
-    }
-    else
-        StartRun();
+    runner.Start();
 }
 
 void MainWindow::on_action_Stop_triggered()
 {
-    if(dcRunner.isRunning()||runner.isRunning()||rcRunner.isRunning())
+    if(runner.isRunning())
     {
         int res = QMessageBox::question(this,"question","Stop simulation?",QMessageBox::Yes|QMessageBox::No);
         if(res == QMessageBox::Yes)
-            StopRun();
+        {
+            runner.Stop();
+            if(timer.isActive())
+                timer.stop();
+        }
+        else
+            return;
     }
-    else
-        StopRun();
+    else if(dcRunner.isRunning()||rcRunner.isRunning())
+    {
+        int res = QMessageBox::question(this,"question","Stop Decompose or Reconstruct?",QMessageBox::Yes|QMessageBox::No);
+        if(res == QMessageBox::Yes)
+        {
+            dcRunner.Stop();
+            rcRunner.Stop();
+        }
+    }
+
 }
 
 void MainWindow::on_action_ReStart_triggered()
@@ -468,13 +642,13 @@ void MainWindow::on_action_ReStart_triggered()
         int res = QMessageBox::question(this,"question","Restart simulation?",QMessageBox::Yes|QMessageBox::No);
         if(res == QMessageBox::Yes)
         {
-            StopRun();
+            StopAllRun();
             Restart();
         }
     }
     else
     {
-        if(state !=BeforeDecompose)
+        if(runnerState !=BeforeDecompose)
         {
             int res = QMessageBox::question(this,"question","Simulation was processed,Restart it?",QMessageBox::Yes|QMessageBox::No);
             if(res == QMessageBox::Yes)
@@ -494,7 +668,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
         int res = QMessageBox::question(this,"question","Simulation is running,Stop it and quit?",QMessageBox::Yes|QMessageBox::No);
         if(res == QMessageBox::Yes)
         {
-            StopRun();
+            StopAllRun();
             event->accept();
         }
         else
@@ -507,10 +681,30 @@ void MainWindow::closeEvent(QCloseEvent *event)
 void MainWindow::on_action_Clean_triggered()
 {
     CaseCleaner::cleanCase(getUrl());
+    setDecomposeState(BeforeDecompose);
+    setRunnerState(BeforeFoam);
+    setReconstructState(BeforeReconstruct);
     LogInformation("case clean finished!");
 }
 
 void MainWindow::on_actiontest_triggered()
 {
 
+}
+
+void MainWindow::on_action_Decompose_triggered()
+{
+    dcRunner.Start();
+}
+
+void MainWindow::on_action_Reconstruct_triggered()
+{
+    rcRunner.Start();
+}
+
+void MainWindow::on_action_Initlize_triggered()
+{
+    CaseCleaner::cleanTimeDirectories(getUrl());
+    setRunnerState(BeforeFoam);
+    setReconstructState(BeforeReconstruct);
 }

@@ -19,7 +19,7 @@ void DecomposeRunner::Start()
     else
     {
         emit onProcessOutput("no decomposeParDict");
-        emit onProcessFinished(0,QProcess::NormalExit);
+        emit onProcessFinished(0,QProcess::CrashExit);
     }
 
 }

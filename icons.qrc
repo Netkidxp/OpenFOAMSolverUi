@@ -8,5 +8,8 @@
         <file alias="about">img/about.png</file>
         <file alias="help">img/help.png</file>
         <file alias="quit">img/quit.png</file>
+        <file alias="decompose">img/dc.png</file>
+        <file alias="reconstruct">img/re.png</file>
+        <file alias="initialize">img/initialize.png</file>
     </qresource>
 </RCC>

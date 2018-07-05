@@ -20,14 +20,11 @@ FoamLogDecoder::FoamLogDecoder(QObject *parent) : QObject(parent)
 QList<FoamDataPoint> FoamLogDecoder::decode(const QString &log)
 {
     QList<FoamDataPoint> list;
-#if defined(Q_OS_WIN32)||defined(Q_OS_WIN64)
-    QStringList tl = log.split(QString("\r\n\r\nTime = "));
-#elif
-    QStringList tl = log.split(QString("\n\nTime = "));
-#endif
+    QStringList tl = log.split(QString("\nTime = "));
     for(int i=0;i<tl.size();i++)
     {
         QString s = tl.at(i);
+        s = s.trimmed();
         if(s.length()==0)
             continue;
         QByteArray strByteArray = s.toLatin1();
@@ -41,7 +38,7 @@ QList<FoamDataPoint> FoamLogDecoder::decode(const QString &log)
         for(int j=1;j<sublist.size();j++)
         {
             QString subs = sublist.at(j);
-            subs = subs.simplified();
+            subs = subs.trimmed();
             if(subs.size()==0 || subs == "\n")
                 continue;
             if(subs.startsWith("time step continuity errors : "))

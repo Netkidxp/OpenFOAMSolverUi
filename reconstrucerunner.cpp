@@ -18,6 +18,6 @@ void ReconstruceRunner::Start()
     else
     {
         emit onProcessOutput("no reconstructParDict");
-        emit onProcessFinished(0,QProcess::NormalExit);
+        emit onProcessFinished(0,QProcess::CrashExit);
     }
 }
